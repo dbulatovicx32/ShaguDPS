@@ -586,7 +586,12 @@ local function Refresh(self, force, report)
         self.bars[bar].lowerBar:Hide()
       end
 
-      self.bars[bar]:SetStatusBarColor(self.values.color.r, self.values.color.g, self.values.color.b)
+      if config.use_custom_bar_color == 1 then
+        local cr, cg, cb, ca = ShaguDPS.getColorValues(config.bar_color)
+        self.bars[bar]:SetStatusBarColor(cr, cg, cb, ca)
+      else
+        self.bars[bar]:SetStatusBarColor(self.values.color.r, self.values.color.g, self.values.color.b)
+      end
       self.bars[bar].textLeft:SetText(i .. ". " .. self.values.name)
 
       local a = template.bar_string_params

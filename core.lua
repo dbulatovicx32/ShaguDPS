@@ -27,6 +27,25 @@ local function round(input, places)
   end
 end
 
+-- split string function for parsing color values
+local function strsplit(delimiter, subject)
+  if not subject then return nil end
+  local delimiter, fields = delimiter or ":", {}
+  local pattern = string.format("([^%s]+)", delimiter)
+  string.gsub(subject, pattern, function(c) fields[table.getn(fields)+1] = c end)
+  return unpack(fields)
+end
+
+-- get color values from a string
+local function getColorValues(colorStr)
+  local cr, cg, cb, ca = 1, 1, 1, 1
+  if colorStr then
+    cr, cg, cb, ca = strsplit(",", colorStr)
+    cr, cg, cb, ca = tonumber(cr) or 1, tonumber(cg) or 1, tonumber(cb) or 1, tonumber(ca) or 1
+  end
+  return cr, cg, cb, ca
+end
+
 local function expansion()
   local _, _, _, client = GetBuildInfo()
   client = client or 11200
@@ -77,6 +96,7 @@ local config = {
   texture = 2,
   pastel = 0,
   lock = 0,
+  use_custom_bar_color = 0,
   bar_color = "0.4,0.4,0.8,1.0",
 }
 
@@ -103,3 +123,5 @@ ShaguDPS.internals = internals
 ShaguDPS.parser = parser
 ShaguDPS.round = round
 ShaguDPS.expansion = expansion
+ShaguDPS.strsplit = strsplit
+ShaguDPS.getColorValues = getColorValues

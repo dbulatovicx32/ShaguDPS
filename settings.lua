@@ -38,28 +38,6 @@ local function CreateBackdrop(frame)
   return frame.backdrop
 end
 
-local function round(num, idp)
-  local mult = 10^(idp or 0)
-  return math.floor(num * mult + 0.5) / mult
-end
-
-local function strsplit(delimiter, subject)
-  if not subject then return nil end
-  local delimiter, fields = delimiter or ":", {}
-  local pattern = string.format("([^%s]+)", delimiter)
-  string.gsub(subject, pattern, function(c) fields[table.getn(fields)+1] = c end)
-  return unpack(fields)
-end
-
-local function getColorValues(colorStr)
-  local cr, cg, cb, ca = 1, 1, 1, 1
-  if colorStr then
-    cr, cg, cb, ca = strsplit(",", colorStr)
-    cr, cg, cb, ca = tonumber(cr) or 1, tonumber(cg) or 1, tonumber(cb) or 1, tonumber(ca) or 1
-  end
-  return cr, cg, cb, ca
-end
-
 local function CreateColorPicker(self, entry)
   local color = CreateFrame("Button", nil, self)
   color:SetWidth(11)
@@ -70,21 +48,21 @@ local function CreateColorPicker(self, entry)
   color.prev:SetAllPoints(color)
 
   -- Shagu: This is the problem, it sets the default color instead of the current color set by user
-  local cr, cg, cb, ca = getColorValues(config[entry])
+  local cr, cg, cb, ca = ShaguDPS.getColorValues(config[entry])
   color.prev:SetTexture(cr, cg, cb, ca)
 
   color:SetScript("OnClick", function()
-    local cr, cg, cb, ca = getColorValues(config[entry])
+    local cr, cg, cb, ca = ShaguDPS.getColorValues(config[entry])
     local preview = this.prev
 
     function ColorPickerFrame.func()
       local r,g,b = ColorPickerFrame:GetColorRGB()
       local a = 1 - OpacitySliderFrame:GetValue()
 
-      r = round(r, 1)
-      g = round(g, 1)
-      b = round(b, 1)
-      a = round(a, 1)
+      r = ShaguDPS.round(r, 1)
+      g = ShaguDPS.round(g, 1)
+      b = ShaguDPS.round(b, 1)
+      a = ShaguDPS.round(a, 1)
 
       preview:SetTexture(r, g, b, a)
 
@@ -336,6 +314,7 @@ settings:CreateConfig("Bar Spacing", "spacing", "number")
 settings:CreateConfig("Pastel Colors", "pastel", "boolean")
 settings:CreateConfig("Show Backdrops", "backdrop", "boolean")
 settings:CreateConfig("Lock Windows", "lock", "boolean")
+settings:CreateConfig("Use Custom Bar Color", "use_custom_bar_color", "boolean")
 settings:CreateConfig("Bar Color", "bar_color", "color")
 
 -- Provide Slash Commands
@@ -357,7 +336,8 @@ SlashCmdList["SHAGUMETER"] = function(msg, editbox)
     p("  /sdps pastel " .. config.pastel .. " |cffcccccc- Use pastel colors")
     p("  /sdps backdrop " .. config.backdrop .. " |cffcccccc- Show window backdrop and border")
     p("  /sdps lock " .. config.lock .. " |cffcccccc- Lock window")
-    p("  /sdps barcolor \"r,g,b,a\" |cffcccccc- Set bar color (e.g. \"0.4,0.4,0.8,1.0\")")
+    p("  /sdps customcolor " .. config.use_custom_bar_color .. " |cffcccccc- Use custom bar color")
+    p("  /sdps barcolor \"r,g,b,a\" " .. config.bar_color .. " |cffcccccc- Set bar color (e.g. \"0.4,0.4,0.8,1.0\")")
     p("  /sdps toggle |cffcccccc- Toggle window")
     return
   end
@@ -463,10 +443,21 @@ SlashCmdList["SHAGUMETER"] = function(msg, editbox)
       ShaguDPS_Config = config
       window.Refresh(true)
       
-      p("|cffffcc00Shagu|cffffffffDPS:|cffffddcc Bar color set to: " .. config.bar_color)
+      p("|cffffcc00Shagu|cffffffffDPS:|cffffddcc Custom bar color set to: " .. config.bar_color)
     else
       p("|cffffcc00Shagu|cffffffffDPS:|cffff5511 Invalid format. Use \"r,g,b,a\" (e.g. \"0.4,0.4,0.8,1.0\")")
-    end    
+    end   
+  elseif strlower(cmd) == "customcolor" then
+    if tonumber(args) and (tonumber(args) == 1 or tonumber(args) == 0) then
+      config.use_custom_bar_color = tonumber(args)
+      ShaguDPS_Config = config
+      window.Refresh(true)
+      
+      p("|cffffcc00Shagu|cffffffffDPS:|cffffddcc Use custom bar color: " .. config.use_custom_bar_color)
+    else
+      p("|cffffcc00Shagu|cffffffffDPS:|cffff5511 Valid Options are 0-1")
+    end
   end
+
   
 end
