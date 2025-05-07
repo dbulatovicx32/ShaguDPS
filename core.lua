@@ -77,6 +77,7 @@ local config = {
   texture = 2,
   pastel = 0,
   lock = 0,
+  bar_color = "0.4,0.4,0.8,1.0",
 }
 
 local internals = {

@@ -27,6 +27,90 @@ local backdrop_border = {
   insets = { left = 3, right = 3, top = 3, bottom = 3 }
 }
 
+local function CreateBackdrop(frame)
+  frame.backdrop = CreateFrame("Frame", nil, frame)
+  frame.backdrop:SetFrameLevel(frame:GetFrameLevel() - 1)
+  frame.backdrop:SetPoint("TOPLEFT", frame, "TOPLEFT", -2, 2)
+  frame.backdrop:SetPoint("BOTTOMRIGHT", frame, "BOTTOMRIGHT", 2, -2)
+  frame.backdrop:SetBackdrop(backdrop)
+  frame.backdrop:SetBackdropColor(.2, .2, .2, 1)
+  frame.backdrop:SetBackdropBorderColor(.3, .3, .3, 1)
+  return frame.backdrop
+end
+
+local function round(num, idp)
+  local mult = 10^(idp or 0)
+  return math.floor(num * mult + 0.5) / mult
+end
+
+local function strsplit(delimiter, subject)
+  if not subject then return nil end
+  local delimiter, fields = delimiter or ":", {}
+  local pattern = string.format("([^%s]+)", delimiter)
+  string.gsub(subject, pattern, function(c) fields[table.getn(fields)+1] = c end)
+  return unpack(fields)
+end
+
+local function getColorValues(colorStr)
+  local cr, cg, cb, ca = 1, 1, 1, 1
+  if colorStr then
+    cr, cg, cb, ca = strsplit(",", colorStr)
+    cr, cg, cb, ca = tonumber(cr) or 1, tonumber(cg) or 1, tonumber(cb) or 1, tonumber(ca) or 1
+  end
+  return cr, cg, cb, ca
+end
+
+local function CreateColorPicker(self, entry)
+  local color = CreateFrame("Button", nil, self)
+  color:SetWidth(11)
+  color:SetHeight(11)
+  CreateBackdrop(color)
+  color:SetPoint("TOPRIGHT", self, "TOPRIGHT", -11.5, -self.entries*18 - 10)
+  color.prev = color.backdrop:CreateTexture("OVERLAY")
+  color.prev:SetAllPoints(color)
+
+  -- Shagu: This is the problem, it sets the default color instead of the current color set by user
+  local cr, cg, cb, ca = getColorValues(config[entry])
+  color.prev:SetTexture(cr, cg, cb, ca)
+
+  color:SetScript("OnClick", function()
+    local cr, cg, cb, ca = getColorValues(config[entry])
+    local preview = this.prev
+
+    function ColorPickerFrame.func()
+      local r,g,b = ColorPickerFrame:GetColorRGB()
+      local a = 1 - OpacitySliderFrame:GetValue()
+
+      r = round(r, 1)
+      g = round(g, 1)
+      b = round(b, 1)
+      a = round(a, 1)
+
+      preview:SetTexture(r, g, b, a)
+
+      if not this:GetParent():IsShown() then
+        config[entry] = r .. "," .. g .. "," .. b .. "," .. a
+        window.Refresh(true)
+      end
+    end
+
+    function ColorPickerFrame.cancelFunc()
+      preview:SetTexture(cr, cg, cb, ca)
+    end
+
+    ColorPickerFrame.opacityFunc = ColorPickerFrame.func
+    ColorPickerFrame.element = this
+    ColorPickerFrame.opacity = 1 - ca
+    ColorPickerFrame.hasOpacity = 1
+    ColorPickerFrame:SetColorRGB(cr, cg, cb)
+    ColorPickerFrame:SetFrameStrata("DIALOG")
+    ShowUIPanel(ColorPickerFrame)
+  end)
+
+  return color
+end
+
+
 local function CreateSelector(self, values)
   local input = CreateFrame("Frame", nil, self)
   input.values = values
@@ -166,6 +250,11 @@ local function CreateConfig(self, caption, entry, check)
     input.entry = entry
     input:Show()
   end
+
+  if check == "color" then
+    local input = self:CreateColorPicker(entry)
+    input:Show()
+  end
 end
 
 
@@ -185,7 +274,7 @@ end)
 settings:Hide()
 settings:SetPoint("CENTER", UIParent, "CENTER", 0, 32)
 settings:SetWidth(192)
-settings:SetHeight(216)
+settings:SetHeight(260)
 settings:SetMovable(true)
 settings:EnableMouse(true)
 settings:RegisterForDrag("LeftButton")
@@ -194,6 +283,7 @@ settings:SetScript("OnDragStop", function() this:StopMovingOrSizing() end)
 settings:SetFrameStrata("DIALOG")
 settings.CreateConfig = CreateConfig
 settings.CreateSelector = CreateSelector
+settings.CreateColorPicker = CreateColorPicker
 
 -- window background
 settings:SetBackdrop(backdrop_window)
@@ -246,6 +336,7 @@ settings:CreateConfig("Bar Spacing", "spacing", "number")
 settings:CreateConfig("Pastel Colors", "pastel", "boolean")
 settings:CreateConfig("Show Backdrops", "backdrop", "boolean")
 settings:CreateConfig("Lock Windows", "lock", "boolean")
+settings:CreateConfig("Bar Color", "bar_color", "color")
 
 -- Provide Slash Commands
 SLASH_SHAGUMETER1, SLASH_SHAGUMETER2, SLASH_SHAGUMETER3 = "/shagudps", "/sdps", "/sd"
@@ -266,6 +357,7 @@ SlashCmdList["SHAGUMETER"] = function(msg, editbox)
     p("  /sdps pastel " .. config.pastel .. " |cffcccccc- Use pastel colors")
     p("  /sdps backdrop " .. config.backdrop .. " |cffcccccc- Show window backdrop and border")
     p("  /sdps lock " .. config.lock .. " |cffcccccc- Lock window")
+    p("  /sdps barcolor \"r,g,b,a\" |cffcccccc- Set bar color (e.g. \"0.4,0.4,0.8,1.0\")")
     p("  /sdps toggle |cffcccccc- Toggle window")
     return
   end
@@ -365,5 +457,16 @@ SlashCmdList["SHAGUMETER"] = function(msg, editbox)
     else
       p("|cffffcc00Shagu|cffffffffDPS:|cffff5511 Valid Options are 0-1")
     end
+  elseif strlower(cmd) == "barcolor" then
+    if args and string.find(args, "%d+%.?%d*,%d+%.?%d*,%d+%.?%d*,%d+%.?%d*") then
+      config.bar_color = args
+      ShaguDPS_Config = config
+      window.Refresh(true)
+      
+      p("|cffffcc00Shagu|cffffffffDPS:|cffffddcc Bar color set to: " .. config.bar_color)
+    else
+      p("|cffffcc00Shagu|cffffffffDPS:|cffff5511 Invalid format. Use \"r,g,b,a\" (e.g. \"0.4,0.4,0.8,1.0\")")
+    end    
   end
+  
 end
