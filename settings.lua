@@ -252,7 +252,7 @@ end)
 settings:Hide()
 settings:SetPoint("CENTER", UIParent, "CENTER", 0, 32)
 settings:SetWidth(192)
-settings:SetHeight(260)
+settings:SetHeight(264)
 settings:SetMovable(true)
 settings:EnableMouse(true)
 settings:RegisterForDrag("LeftButton")
@@ -314,8 +314,10 @@ settings:CreateConfig("Bar Spacing", "spacing", "number")
 settings:CreateConfig("Pastel Colors", "pastel", "boolean")
 settings:CreateConfig("Show Backdrops", "backdrop", "boolean")
 settings:CreateConfig("Lock Windows", "lock", "boolean")
+
+settings:CreateConfig("Overrides", nil, "header")
 settings:CreateConfig("Use Custom Bar Color", "use_custom_bar_color", "boolean")
-settings:CreateConfig("Bar Color", "bar_color", "color")
+settings:CreateConfig("Custom Bar Color", "bar_color", "color")
 
 -- Provide Slash Commands
 SLASH_SHAGUMETER1, SLASH_SHAGUMETER2, SLASH_SHAGUMETER3 = "/shagudps", "/sdps", "/sd"
